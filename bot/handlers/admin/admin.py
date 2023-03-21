@@ -52,7 +52,7 @@ async def show_all_orders(message: Message):
         all_orders = get_all_orders(db)
 
         if len(all_orders) == 0:
-            bot.bot.send_message(message.from_user.id, "Заказов нет.")
+            await bot.bot.send_message(message.from_user.id, "Заказов нет.")
 
         for order in all_orders:
 
