@@ -6,8 +6,7 @@ from aiogram import Dispatcher
 from aiogram.types import Message
 from bot.handlers.admin.FSM import *
 from aiogram.dispatcher import FSMContext
-from bot.database import get_all_orders, delete_order
-from bot.database import Db
+from bot.database import db
 
 
 async def admin(message: Message):
@@ -48,11 +47,10 @@ async def cancel_fsm(message: Message, state: FSMContext):
 
 async def show_all_orders(message: Message):
     if await is_admin(bot.bot, message.from_user.id):
-        db = Db()
-        all_orders = get_all_orders(db)
+        all_orders = db.get_all_orders()
 
         if len(all_orders) == 0:
-            await bot.bot.send_message(message.from_user.id, "Заказов нет.")
+            await bot.bot.send_message(message.from_user.id, "❌ Заказов нет.")
 
         for order in all_orders:
 
@@ -61,7 +59,7 @@ async def show_all_orders(message: Message):
                 chat_member = await bot.bot.get_chat_member(order.user_id, order.user_id)
             except Exception:
                 # in case user deleted our chat
-                delete_order(db, order.order_id)
+                db.delete_order(order.order_id)
                 continue
             user = chat_member.user
 

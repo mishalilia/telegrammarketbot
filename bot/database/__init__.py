@@ -1,2 +1,1 @@
-from .database import Db
-from bot.database.methods import *
+from .database import db

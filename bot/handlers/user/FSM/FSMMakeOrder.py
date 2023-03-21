@@ -1,7 +1,7 @@
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.types import Message
-from bot.database import add_order, Db, get_product_by_id
+from bot.database import db
 from bot.keyboards import cancel_user_kb, user_kb, location_kb
 from bot.misc import get_sizes
 import bot
@@ -34,8 +34,7 @@ async def mo_load_size(message: Message, state: FSMContext):
 
 
 async def mo_load_product_id(message: Message, state: FSMContext):
-    db = Db()
-    product = get_product_by_id(db, message.text)
+    product = db.get_product_by_id(message.text)
 
     if product is None:
         await bot.bot.send_message(message.from_user.id, "❌ Товара с таким айди не найдено.")
@@ -63,11 +62,10 @@ async def mo_load_location(message: Message, state: FSMContext):
             data["location"] = f"text:{message.text}"
         else:
             data["location"] = f"location:{message.location.latitude};{message.location.longitude}"
-        db = Db()
 
         order_id = str(uuid.uuid1()).replace("-", "")
 
-        if add_order(db, order_id, message.from_user.id, data["product_id"], data["size"], data["location"]):
+        if db.add_order(order_id, message.from_user.id, data["product_id"], data["size"], data["location"]):
             print(f"Добавил заказ:\norder_id: {order_id}\nuser_id: {message.from_user.id}"
                   f"\nproduct_id: {data['product_id']}"
                   f"\nsize: {data['size']}\nlocation: {data['location']}")

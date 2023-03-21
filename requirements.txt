@@ -1,3 +1,4 @@
 ﻿selenium
 webdriver-manager
 aiogram==2.25.1
+firebase-admin
