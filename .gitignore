@@ -132,4 +132,4 @@ dmypy.json
 *.idea
 
 # Firebase
-serviceAccount.json
+bot/database/serviceAccount.json
