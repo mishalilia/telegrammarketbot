@@ -6,7 +6,7 @@ from bot.database.models import Order, Product
 
 class FirebaseDB:
     def __init__(self):
-        cred = credentials.Certificate('.env')
+        cred = credentials.Certificate(".env")
         app = firebase_admin.initialize_app(cred)
         self.db = firestore.client()
 
