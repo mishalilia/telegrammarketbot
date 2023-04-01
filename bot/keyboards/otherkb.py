@@ -27,3 +27,16 @@ send_location = KeyboardButton("Отправить локацию", request_loca
 
 location_kb = ReplyKeyboardMarkup(resize_keyboard=True)
 location_kb.add(send_location).add(cancel_u)
+
+# more keyboard
+enough = KeyboardButton("🙅🏻‍♂️ Нет")
+more = KeyboardButton("➕ Добавить ещё")
+
+more_kb = ReplyKeyboardMarkup(resize_keyboard=True)
+more_kb.add(enough).add(more).add(cancel_u)
+
+# confirm keyboard
+confirm = KeyboardButton("✅ Подтвердить")
+
+confirm_kb = ReplyKeyboardMarkup(resize_keyboard=True)
+confirm_kb.add(confirm).add(cancel_u)

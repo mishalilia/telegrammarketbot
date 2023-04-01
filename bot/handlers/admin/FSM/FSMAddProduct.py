@@ -13,7 +13,7 @@ class FSMAddProduct(StatesGroup):
 
 async def ap_start(message: Message):
     await FSMAddProduct.id.set()
-    await bot.bot.send_message(message.from_user.id, "➡️ Отправьте айди товара (Например: #S160323)",
+    await bot.bot.send_message(message.from_user.id, "➡️ Отправьте айди товара",
                                reply_markup=cancel_admin_kb)
 
 
@@ -22,16 +22,13 @@ async def ap_load_id(message: Message, state: FSMContext):
         data["id"] = message.text
 
     await FSMAddProduct.next()
-    await bot.bot.send_message(message.from_user.id, "➡️ Отправьте ссылку на товар\n"
-                                                     "(Например: kream.co.kr/products/107181)")
+    await bot.bot.send_message(message.from_user.id, "➡️ Отправьте ссылку на товар")
 
 
 async def ap_load_link(message: Message, state: FSMContext):
-
     async with state.proxy() as data:
-        data["link"] = message.text
+        data["link"] = message.text[message.text.find("https"):]
 
-    link = data["link"].split("/")[-1]
-    await bot.bot.send_message(message.from_user.id, db.add_product(data["id"], link), reply_markup=admin_kb)
+    await bot.bot.send_message(message.from_user.id, db.add_product(data["id"], data["link"]), reply_markup=admin_kb)
 
     await state.finish()

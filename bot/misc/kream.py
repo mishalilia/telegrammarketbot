@@ -13,7 +13,7 @@ credentials = {
 }
 
 
-def get_sizes(size, link):
+async def kream(size, link):
     options = Options()
     options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
                          " (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36")
@@ -29,13 +29,13 @@ def get_sizes(size, link):
         driver.get("https://kream.co.kr/login/")
 
         # getting elements
-        email = driver.find_element(By.XPATH, "//input[@type='email']")
-        password = driver.find_element(By.XPATH, "//input[@type='password']")
+        email_field = driver.find_element(By.XPATH, "//input[@type='email']")
+        password_field = driver.find_element(By.XPATH, "//input[@type='password']")
         login = driver.find_element(By.XPATH, "//div[@class='login_btn_box']")
 
         # doing inputs
-        email.send_keys(credentials.get("email"))
-        password.send_keys(credentials.get("password"))
+        email_field.send_keys(credentials.get("email"))
+        password_field.send_keys(credentials.get("password"))
 
         # clicking login button
         WebDriverWait(driver, 5).until(EC.element_to_be_clickable(login))
@@ -45,7 +45,7 @@ def get_sizes(size, link):
         WebDriverWait(driver, 5).until(EC.url_changes("https://kream.co.kr/login/"))
 
         # going to product page
-        driver.get(f"https://kream.co.kr/products/{link}")
+        driver.get(link)
 
         # clicking buy button
         WebDriverWait(driver, 5).until(
@@ -56,26 +56,22 @@ def get_sizes(size, link):
             EC.presence_of_all_elements_located((By.XPATH, "//div[@class='link_inner']")))
 
         # getting available sizes
-        available_sizes = []
         for button in buttons:
+            oversize = []
             text = button.text.split("\n")
-            if text[1] != "구매입찰":
-                available_sizes.append(text[0])
+            if "-" in text[0]:
+                oversize = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL"]
+                oversize = oversize[oversize.index(text[0].split("-")[0]):oversize.index(text[0].split("-")[1]) + 1]
+            if (text[0] == size or size in oversize) and text[1] != "구매입찰":
+                return text[1].replace(",", "")
 
-        # returning result
-        if size in available_sizes:
-            return True
-        else:
-            return False
+        return False
 
     # in case site of product couldn't load properly or login went unsuccessfully
     except TimeoutException:
-        return get_sizes(size, link)
+        return await kream(size, link)
 
     # closing and quiting driver
     finally:
         driver.close()
         driver.quit()
-
-
-#get_sizes("230", "107181")

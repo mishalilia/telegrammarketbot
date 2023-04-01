@@ -38,6 +38,7 @@ async def fp_load_id_link(message: Message, state: FSMContext):
         await bot.bot.send_message(message.from_user.id, "❌ Товара с таким айди не найдено.", reply_markup=admin_kb)
     else:
         await bot.bot.send_message(message.from_user.id,
-                                   f"Айди: {product.product_id}\nСсылка: kream.co.kr/products/{product.link}",
+                                   f"Айди: {product.product_id}\nСсылка: {product.link}"
+                                   f"\nЦена: {product.price}₩",
                                    reply_markup=admin_kb)
     await state.finish()

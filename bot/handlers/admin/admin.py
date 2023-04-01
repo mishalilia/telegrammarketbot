@@ -1,7 +1,7 @@
 import bot
 from bot.handlers.user import start
 from bot.keyboards import admin_kb, orders_kb, products_kb
-from bot.misc import is_admin
+from bot.misc import is_admin, form_order
 from aiogram import Dispatcher
 from aiogram.types import Message
 from bot.handlers.admin.FSM import *
@@ -10,34 +10,34 @@ from bot.database import db
 
 
 async def admin(message: Message):
-    if await is_admin(bot.bot, message.from_user.id):
+    if is_admin(message.from_user.id):
         await bot.bot.send_message(message.from_user.id, "💻 Админ панель.", reply_markup=admin_kb)
     else:
         await bot.bot.send_message(message.from_user.id, "❌ Вы не являетесь админом.")
 
 
 async def exit_admin(message: Message):
-    if await is_admin(bot.bot, message.from_user.id):
+    if is_admin(message.from_user.id):
         await start(message)
 
 
 async def products(message: Message):
-    if await is_admin(bot.bot, message.from_user.id):
+    if is_admin(message.from_user.id):
         await bot.bot.send_message(message.from_user.id, "➡️ Далее...", reply_markup=products_kb)
 
 
 async def orders(message: Message):
-    if await is_admin(bot.bot, message.from_user.id):
+    if is_admin(message.from_user.id):
         await bot.bot.send_message(message.from_user.id, "➡️ Далее...", reply_markup=orders_kb)
 
 
 async def back(message: Message):
-    if await is_admin(bot.bot, message.from_user.id):
+    if is_admin(message.from_user.id):
         await bot.bot.send_message(message.from_user.id, "↩️ Назад.", reply_markup=admin_kb)
 
 
 async def cancel_fsm(message: Message, state: FSMContext):
-    if await is_admin(bot.bot, message.from_user.id):
+    if is_admin(message.from_user.id):
         current_state = await state.get_state()
         if current_state is None:
             return
@@ -46,7 +46,7 @@ async def cancel_fsm(message: Message, state: FSMContext):
 
 
 async def show_all_orders(message: Message):
-    if await is_admin(bot.bot, message.from_user.id):
+    if is_admin(message.from_user.id):
         all_orders = db.get_all_orders()
 
         if len(all_orders) == 0:
@@ -58,7 +58,7 @@ async def show_all_orders(message: Message):
             try:
                 chat_member = await bot.bot.get_chat_member(order.user_id, order.user_id)
             except Exception:
-                # in case user deleted our chat
+                # in case user deleted our chat (???)
                 db.delete_order(order.order_id)
                 continue
             user = chat_member.user
@@ -66,16 +66,16 @@ async def show_all_orders(message: Message):
             if method == "text":
                 await bot.bot.send_message(message.from_user.id, f"Айди заказа: `{order.order_id}`\n"
                                                                  f"Пользователь: {user.mention}\n"
-                                                                 f"Айди товара: {order.product_id}\n"
-                                                                 f"Размер: {order.size}\n"
+                                                                 f"ФИО: {order.payment}\n\n"
+                                                                 f"{form_order(order.products)}\n"
                                                                  f"Адрес: {location}", parse_mode="Markdown")
 
             else:
                 await bot.bot.send_message(message.from_user.id, f"Айди заказа: `{order.order_id}`\n"
                                                                  f"Пользователь: {user.mention}\n"
-                                                                 f"Айди товара: {order.product_id}\n"
-                                                                 f"Размер: {order.size}\n"
-                                                                 f"Адрес: ", parse_mode="Markdown")
+                                                                 f"ФИО: {order.payment}\n\n"
+                                                                 f"{form_order(order.products)}\n"
+                                                                 f"Адрес: \n", parse_mode="Markdown")
                 latitude, longitude = float(location.split(";")[0]), float(location.split(";")[1])
                 await bot.bot.send_location(message.from_user.id, latitude, longitude)
 

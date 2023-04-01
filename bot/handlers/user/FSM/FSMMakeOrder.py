@@ -2,35 +2,26 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.types import Message
 from bot.database import db
-from bot.keyboards import cancel_user_kb, user_kb, location_kb
-from bot.misc import get_sizes
+from bot.keyboards import cancel_user_kb, user_kb, location_kb, more_kb, confirm_kb
+from bot.misc import get_price, form_order, get_product_cost
 import bot
 import uuid
 
 
-class FSMAddOrder(StatesGroup):
-    size = State()
+class FSMMakeOrder(StatesGroup):
     product_id = State()
+    size = State()
+    more = State()
+    confirm = State()
     location = State()
+    payment = State()
+    products = {}
+    more_flag = False
 
 
 async def mo_start(message: Message):
-    await FSMAddOrder.size.set()
-    await bot.bot.send_message(message.from_user.id, "👞 Введите корейский размер обуви. (220 - 320)",
-                               reply_markup=cancel_user_kb)
-
-
-async def mo_load_size(message: Message, state: FSMContext):
-    if message.text.isdigit() and 220 <= int(message.text) <= 320\
-            and (int(message.text) % 10 == 0 or int(message.text) % 10 == 5):
-
-        async with state.proxy() as data:
-            data["size"] = message.text
-        await FSMAddOrder.next()
-        await bot.bot.send_message(message.from_user.id, "➡️ Введите айди товара.")
-
-    else:
-        await bot.bot.send_message(message.from_user.id, "❌ Некорректный размер.")
+    await FSMMakeOrder.product_id.set()
+    await bot.bot.send_message(message.from_user.id, "➡️ Введите айди товара.", reply_markup=cancel_user_kb)
 
 
 async def mo_load_product_id(message: Message, state: FSMContext):
@@ -40,20 +31,67 @@ async def mo_load_product_id(message: Message, state: FSMContext):
         await bot.bot.send_message(message.from_user.id, "❌ Товара с таким айди не найдено.")
 
     else:
+        await FSMMakeOrder.next()
+        await bot.bot.send_message(message.from_user.id, "Введите размер.")
+        FSMMakeOrder.products[product.product_id] = {}
+        FSMMakeOrder.products[product.product_id]["link"] = product.link
         async with state.proxy() as data:
+            data["product_id"] = message.text
 
-            loading_msg = await bot.bot.send_message(message.from_user.id, "Загрузка...")
 
-            if get_sizes(data["size"], product.link):
-                data["product_id"] = product.product_id
-                await FSMAddOrder.next()
-                await bot.bot.send_message(message.from_user.id, "✈️ Введите адрес доставки.", reply_markup=location_kb)
+async def mo_load_size(message: Message, state: FSMContext):
+    async with state.proxy() as data:
+        data["size"] = message.text.upper()
+        FSMMakeOrder.products[data["product_id"]]["size"] = data["size"]
 
+        loading_msg = await bot.bot.send_message(message.from_user.id, "Проверяем наличие размера. "
+                                                                       "(Это занимает до 30 секунд)")
+
+        price = await get_price(data["size"], FSMMakeOrder.products[data["product_id"]]["link"])
+
+        if price:
+            FSMMakeOrder.products[data["product_id"]]["size"] = data["size"]
+            FSMMakeOrder.products[data["product_id"]]["price"] = get_product_cost(float(price) * 1.15)
+            await bot.bot.send_message(message.from_user.id, "✅ Есть в наличии.")
+            await bot.bot.send_message(message.from_user.id, "Желаете добавить еще один товар?", reply_markup=more_kb)
+
+        else:
+            del FSMMakeOrder.products[data["product_id"]]
+            await bot.bot.send_message(message.from_user.id, "❌ Нет в наличии.", reply_markup=user_kb)
+            if len(FSMMakeOrder.products):
+                await bot.bot.send_message(message.from_user.id, "Желаете добавить еще один товар?",
+                                           reply_markup=more_kb)
             else:
                 await state.finish()
-                await bot.bot.send_message(message.from_user.id, "❌ Нет в наличии.", reply_markup=user_kb)
+                return
 
-            await loading_msg.delete()
+    await FSMMakeOrder.next()
+
+    await loading_msg.delete()
+
+
+async def mo_more(message: Message, state: FSMContext):
+    FSMMakeOrder.more_flag = True
+
+    if message.text == "➕ Добавить ещё":
+        await mo_start(message)
+
+    elif message.text == "🙅🏻‍♂️ Нет":
+        await FSMMakeOrder.next()
+
+        loading_msg = await bot.bot.send_message(message.from_user.id, "🕒 Формируем заказ, ожидайте.")
+        await bot.bot.send_message(message.from_user.id, form_order(FSMMakeOrder.products), reply_markup=confirm_kb)
+        await loading_msg.delete()
+
+
+async def mo_confirm(message: Message, state: FSMContext):
+    if message.text == "✅ Подтвердить":
+        await FSMMakeOrder.next()
+        await bot.bot.send_message(message.from_user.id,
+                                   "✈️ Введите адрес доставки. (Отправьте локацию"
+                                   " или введите вручную в формате: Г. Москва, Профсоюзная"
+                                   " ул., д. 43к2, кв. 7, 117420)",
+                                   reply_markup=location_kb)
 
 
 async def mo_load_location(message: Message, state: FSMContext):
@@ -63,19 +101,24 @@ async def mo_load_location(message: Message, state: FSMContext):
         else:
             data["location"] = f"location:{message.location.latitude};{message.location.longitude}"
 
+        text = "Мы внесли все данные в базу ☑️\n" \
+               "Для завершения оформления, пожалуйста оплатите общую сумму заказа по следующим реквизитам:\n" \
+               "Сбер\n2202201555870191\nДаниил Русланович Л.\n\nПосле произведения оплаты отправьте ФИО" \
+               " отправителя в этот чат, после чего менеджер проверит статус оплаты и свяжется с вами 👨🏻‍💻"
+        await bot.bot.send_message(message.from_user.id, text,
+                                   reply_markup=cancel_user_kb)
+
+        await FSMMakeOrder.next()
+
+
+async def mo_payment(message: Message, state: FSMContext):
+    async with state.proxy() as data:
         order_id = str(uuid.uuid1()).replace("-", "")
+        db.add_order(order_id, message.from_user.id, FSMMakeOrder.products, data["location"], message.text)
 
-        if db.add_order(order_id, message.from_user.id, data["product_id"], data["size"], data["location"]):
-            print(f"Добавил заказ:\norder_id: {order_id}\nuser_id: {message.from_user.id}"
-                  f"\nproduct_id: {data['product_id']}"
-                  f"\nsize: {data['size']}\nlocation: {data['location']}")
-            await bot.bot.send_message(message.from_user.id, "🕒 Ожидайте, с вами свяжется наш консультант.",
-                                       reply_markup=user_kb)
+        await bot.bot.send_message(message.from_user.id, "🕖 Ожидайте. Ваш заказ перешёл к менеджеру."
+                                                         " С вами свяжутся в течение суток.",
+                                   reply_markup=user_kb)
 
-        else:
-            print(f"Не удалось добавить заказ:\nuser_id: {message.from_user.id}\nproduct_id: {data['product_id']}"
-                  f"\nsize: {data['size']}\nlocation: {data['location']}")
-            await bot.bot.send_message(message.from_user.id, "❌ Возникла непредвиденная ошибка. Попробуйте позже.",
-                                       reply_markup=user_kb)
-
+        FSMMakeOrder.products.clear()
         await state.finish()
