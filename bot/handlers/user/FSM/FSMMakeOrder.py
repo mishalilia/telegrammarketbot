@@ -48,10 +48,12 @@ async def mo_load_size(message: Message, state: FSMContext):
                                                                        "(Это занимает до 30 секунд)")
 
         price = await get_price(data["size"], FSMMakeOrder.products[data["product_id"]]["link"])
+        await loading_msg.delete()
 
         if price:
+            await FSMMakeOrder.next()
             FSMMakeOrder.products[data["product_id"]]["size"] = data["size"]
-            FSMMakeOrder.products[data["product_id"]]["price"] = get_product_cost(float(price) * 1.15)
+            FSMMakeOrder.products[data["product_id"]]["price"] = get_product_cost(float(price) * 1.15) + 5000
             await bot.bot.send_message(message.from_user.id, "✅ Есть в наличии.")
             await bot.bot.send_message(message.from_user.id, "Желаете добавить еще один товар?", reply_markup=more_kb)
 
@@ -64,10 +66,6 @@ async def mo_load_size(message: Message, state: FSMContext):
             else:
                 await state.finish()
                 return
-
-    await FSMMakeOrder.next()
-
-    await loading_msg.delete()
 
 
 async def mo_more(message: Message, state: FSMContext):
