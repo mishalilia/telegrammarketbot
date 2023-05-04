@@ -13,46 +13,54 @@ credentials = {
 }
 
 
-async def kream(size, link):
+class Selenium:
+    driver = None
+
+
+def initialize_selenium():
     options = Options()
     options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
                          " (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36")
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
+    options.add_argument('--blink-settings=imagesEnabled=false')
 
     # initializing driver
-    driver = webdriver.Chrome(options=options)
+    Selenium.driver = webdriver.Chrome(options=options)
 
+    # going to login page
+    Selenium.driver.get("https://kream.co.kr/login/")
+
+    # getting elements
+    email_field = Selenium.driver.find_element(By.XPATH, "//input[@type='email']")
+    password_field = Selenium.driver.find_element(By.XPATH, "//input[@type='password']")
+    login = Selenium.driver.find_element(By.XPATH, "//div[@class='login_btn_box']")
+
+    # doing inputs
+    email_field.send_keys(credentials.get("email"))
+    password_field.send_keys(credentials.get("password"))
+
+    # clicking login button
+    WebDriverWait(Selenium.driver, 10).until(EC.element_to_be_clickable(login))
+    login.click()
+
+    # waiting for url change
+    WebDriverWait(Selenium.driver, 10).until(EC.url_changes("https://kream.co.kr/login/"))
+    print("Selenium has been initialized.")
+
+
+def product_check(size, link):
     try:
-        # going to login page
-        driver.get("https://kream.co.kr/login/")
-
-        # getting elements
-        email_field = driver.find_element(By.XPATH, "//input[@type='email']")
-        password_field = driver.find_element(By.XPATH, "//input[@type='password']")
-        login = driver.find_element(By.XPATH, "//div[@class='login_btn_box']")
-
-        # doing inputs
-        email_field.send_keys(credentials.get("email"))
-        password_field.send_keys(credentials.get("password"))
-
-        # clicking login button
-        WebDriverWait(driver, 5).until(EC.element_to_be_clickable(login))
-        login.click()
-
-        # waiting for url change
-        WebDriverWait(driver, 5).until(EC.url_changes("https://kream.co.kr/login/"))
-
         # going to product page
-        driver.get(link)
+        Selenium.driver.get(link)
 
         # clicking buy button
-        WebDriverWait(driver, 5).until(
+        WebDriverWait(Selenium.driver, 10).until(
             EC.presence_of_element_located((By.XPATH, "//a[@class='btn_division buy']"))).click()
 
         # getting all costs and sizes
-        buttons = WebDriverWait(driver, 5).until(
+        buttons = WebDriverWait(Selenium.driver, 10).until(
             EC.presence_of_all_elements_located((By.XPATH, "//div[@class='link_inner']")))
 
         # getting available sizes
@@ -67,11 +75,6 @@ async def kream(size, link):
 
         return False
 
-    # in case site of product couldn't load properly or login went unsuccessfully
+    # in case site of product couldn't load properly
     except TimeoutException:
-        return await kream(size, link)
-
-    # closing and quiting driver
-    finally:
-        driver.close()
-        driver.quit()
+        return product_check(size, link)

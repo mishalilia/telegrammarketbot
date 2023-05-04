@@ -55,12 +55,7 @@ async def show_all_orders(message: Message):
         for order in all_orders:
 
             method, location = order.location.split(":")[0], "".join(order.location.split(":")[1:])
-            try:
-                chat_member = await bot.bot.get_chat_member(order.user_id, order.user_id)
-            except Exception:
-                # in case user deleted our chat (???)
-                db.delete_order(order.order_id)
-                continue
+            chat_member = await bot.bot.get_chat_member(order.user_id, order.user_id)
             user = chat_member.user
 
             if method == "text":

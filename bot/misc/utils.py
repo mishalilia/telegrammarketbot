@@ -1,5 +1,5 @@
 import requests
-from .kream import kream
+from .kream import product_check
 from math import ceil
 from bs4 import BeautifulSoup
 
@@ -61,12 +61,12 @@ def form_order(products):
     products_price = float()
     weight = float()
 
-    for product in products.keys():
-        products_str += f"Айди товара: {product}\n" \
-                        f"Размер: {products[product]['size']}\n" \
-                        f"Цена: {products[product]['price']}₽\n\n"
-        products_price += products[product]["price"]
-        weight += weights[product[1]]
+    for product in products:
+        products_str += f"Айди товара: {product['id']}\n" \
+                        f"Размер: {product['size']}\n" \
+                        f"Цена: {product['price']}₽\n\n"
+        products_price += product["price"]
+        weight += weights[product["id"][1]]
 
     delivery_cost = get_delivery_cost(weight)
     products_price = products_price
@@ -76,8 +76,8 @@ def form_order(products):
            f"Общая сумма: {products_price + delivery_cost}₽"
 
 
-async def get_price(size, link):
+def get_price(size, link):
     if "kream.co.kr" in link:
-        return await kream(size, link)
+        return product_check(size, link)
     elif "coupang.com" in link:
         return coupang(size, link)

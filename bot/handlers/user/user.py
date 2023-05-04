@@ -21,7 +21,7 @@ async def cancel_fsm(message: Message, state: FSMContext):
         await state.finish()
         await start(message)
         FSMMakeOrder.more_flag = False
-        FSMMakeOrder.products.clear()
+        del FSMMakeOrder.products[message.from_user.id]
 
     else:
         await bot.bot.send_message(message.from_user.id, "Желаете добавить еще один товар?", reply_markup=more_kb)
