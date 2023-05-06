@@ -4,3 +4,5 @@ aiogram==2.25.1
 firebase-admin
 beautifulsoup4
 requests
+schedule
+flask

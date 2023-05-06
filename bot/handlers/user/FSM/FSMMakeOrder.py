@@ -48,8 +48,12 @@ async def mo_load_size(message: Message, state: FSMContext):
         loading_msg = await bot.bot.send_message(message.from_user.id, "Проверяем наличие размера. "
                                                                        "(Это занимает до 30 секунд)")
 
-        price = get_price(data["size"], FSMMakeOrder.products[message.from_user.id][-1]["link"])
+        price = await get_price(data["size"], FSMMakeOrder.products[message.from_user.id][-1]["link"])
         await loading_msg.delete()
+
+        current_state = await state.get_state()
+        if current_state != "FSMMakeOrder:size":
+            return
 
         if price:
             await FSMMakeOrder.next()

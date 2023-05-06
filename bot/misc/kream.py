@@ -15,6 +15,7 @@ credentials = {
 
 class Selenium:
     driver = None
+    count = 0
 
 
 def initialize_selenium():
@@ -26,31 +27,32 @@ def initialize_selenium():
     options.add_argument('--disable-dev-shm-usage')
     options.add_argument('--blink-settings=imagesEnabled=false')
 
-    # initializing driver
     Selenium.driver = webdriver.Chrome(options=options)
+    login()
 
-    # going to login page
+
+def login():
     Selenium.driver.get("https://kream.co.kr/login/")
 
     # getting elements
     email_field = Selenium.driver.find_element(By.XPATH, "//input[@type='email']")
     password_field = Selenium.driver.find_element(By.XPATH, "//input[@type='password']")
-    login = Selenium.driver.find_element(By.XPATH, "//div[@class='login_btn_box']")
+    login_btn = Selenium.driver.find_element(By.XPATH, "//div[@class='login_btn_box']")
 
     # doing inputs
     email_field.send_keys(credentials.get("email"))
     password_field.send_keys(credentials.get("password"))
 
     # clicking login button
-    WebDriverWait(Selenium.driver, 10).until(EC.element_to_be_clickable(login))
-    login.click()
+    WebDriverWait(Selenium.driver, 10).until(EC.element_to_be_clickable(login_btn))
+    login_btn.click()
 
     # waiting for url change
     WebDriverWait(Selenium.driver, 10).until(EC.url_changes("https://kream.co.kr/login/"))
     print("Selenium has been initialized.")
 
 
-def product_check(size, link):
+async def product_check(size, link):
     try:
         # going to product page
         Selenium.driver.get(link)
@@ -77,4 +79,4 @@ def product_check(size, link):
 
     # in case site of product couldn't load properly
     except TimeoutException:
-        return product_check(size, link)
+        return await product_check(size, link)

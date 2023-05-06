@@ -76,8 +76,8 @@ def form_order(products):
            f"Общая сумма: {products_price + delivery_cost}₽"
 
 
-def get_price(size, link):
+async def get_price(size, link):
     if "kream.co.kr" in link:
-        return product_check(size, link)
+        return await product_check(size, link)
     elif "coupang.com" in link:
         return coupang(size, link)
