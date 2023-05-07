@@ -34,18 +34,16 @@ def initialize_selenium():
 def login():
     Selenium.driver.get("https://kream.co.kr/login/")
 
-    # getting elements
-    email_field = Selenium.driver.find_element(By.XPATH, "//input[@type='email']")
-    password_field = Selenium.driver.find_element(By.XPATH, "//input[@type='password']")
-    login_btn = Selenium.driver.find_element(By.XPATH, "//div[@class='login_btn_box']")
+    # inputs
+    WebDriverWait(Selenium.driver, 10).until(
+        EC.presence_of_element_located((By.XPATH, "//input[@type='email']"))).send_keys(credentials.get("email"))
 
-    # doing inputs
-    email_field.send_keys(credentials.get("email"))
-    password_field.send_keys(credentials.get("password"))
+    WebDriverWait(Selenium.driver, 10).until(
+        EC.presence_of_element_located((By.XPATH, "//input[@type='password']"))).send_keys(credentials.get("password"))
 
-    # clicking login button
-    WebDriverWait(Selenium.driver, 10).until(EC.element_to_be_clickable(login_btn))
-    login_btn.click()
+    # login click
+    WebDriverWait(Selenium.driver, 10).until(
+        EC.element_to_be_clickable((By.XPATH, "//div[@class='login_btn_box']"))).click()
 
     # waiting for url change
     WebDriverWait(Selenium.driver, 10).until(EC.url_changes("https://kream.co.kr/login/"))
